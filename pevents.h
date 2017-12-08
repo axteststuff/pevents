@@ -17,6 +17,13 @@
 
 #include <stdint.h>
 
+#if !defined(PULSE)
+#define PULSE
+#endif
+#if !defined(WFMO)
+#define WFMO
+#endif
+
 namespace neosmart
 {
 	//Type declarations
