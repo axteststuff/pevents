@@ -128,12 +128,6 @@ namespace neosmart
 		int result = 0;
 		if (!event->State)
 		{
-			//Zero-timeout event state check optimization
-			if (milliseconds == 0)
-			{
-				return WAIT_TIMEOUT;
-			}
-
 			timespec ts;
 			if (milliseconds != (uint64_t) -1)
 			{
@@ -206,12 +200,6 @@ namespace neosmart
 	}
 
 #ifdef WFMO
-	int WaitForMultipleEvents(neosmart_event_t *events, int count, bool waitAll, uint64_t milliseconds)
-	{
-		int unused;
-		return WaitForMultipleEvents(events, count, waitAll, milliseconds, unused);
-	}
-
 	int WaitForMultipleEvents(neosmart_event_t *events, int count, bool waitAll, uint64_t milliseconds, int &waitIndex)
 	{
 		neosmart_wfmo_t wfmo = new neosmart_wfmo_t_;
@@ -246,7 +234,7 @@ namespace neosmart
 		bool done = false;
 		waitIndex = -1;
 
-		for (int i = 0; i < count; ++i)
+		for (int i = 0; i < count && !done; ++i)
 		{
 			waitInfo.WaitIndex = i;
 
@@ -259,9 +247,6 @@ namespace neosmart
 
 			if (UnlockedWaitForEvent(events[i], 0) == 0)
 			{
-				tempResult = pthread_mutex_unlock(&events[i]->Mutex);
-				assert(tempResult == 0);
-
 				if (waitAll)
 				{
 					--wfmo->Status.EventsLeft;
@@ -272,37 +257,28 @@ namespace neosmart
 					wfmo->Status.FiredEvent = i;
 					waitIndex = i;
 					done = true;
-					break;
 				}
 			}
 			else
 			{
 				events[i]->RegisteredWaits.push_back(waitInfo);
 				++wfmo->RefCount;
-
-				tempResult = pthread_mutex_unlock(&events[i]->Mutex);
-				assert(tempResult == 0);
 			}
+
+			tempResult = pthread_mutex_unlock(&events[i]->Mutex);
+			assert(tempResult == 0);
 		}
 
 		timespec ts;
-		if (!done)
+		if (milliseconds != (uint64_t) -1)
 		{
-			if (milliseconds == 0)
-			{
-				result = WAIT_TIMEOUT;
-				done = true;
-			}
-			else if (milliseconds != (uint64_t) -1)
-			{
-				timeval tv;
-				gettimeofday(&tv, NULL);
+			timeval tv;
+			gettimeofday(&tv, NULL);
 
-				uint64_t nanoseconds = ((uint64_t) tv.tv_sec) * 1000 * 1000 * 1000 + milliseconds * 1000 * 1000 + ((uint64_t) tv.tv_usec) * 1000;
+			uint64_t nanoseconds = ((uint64_t) tv.tv_sec) * 1000 * 1000 * 1000 + milliseconds * 1000 * 1000 + ((uint64_t) tv.tv_usec) * 1000;
 
-				ts.tv_sec = nanoseconds / 1000 / 1000 / 1000;
-				ts.tv_nsec = (nanoseconds - ((uint64_t) ts.tv_sec) * 1000 * 1000 * 1000);
-			}
+			ts.tv_sec = nanoseconds / 1000 / 1000 / 1000;
+			ts.tv_nsec = (nanoseconds - ((uint64_t) ts.tv_sec) * 1000 * 1000 * 1000);
 		}
 
 		while (!done)

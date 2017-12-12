@@ -47,6 +47,7 @@ void letters()
 	std::mt19937 gen(rd());
 	std::uniform_int_distribution<int> dis(0, 3000);
 
+	std::cout << "letter(" << std::this_thread::get_id() << ") thread start!" << std::endl;
 	//wait a random amount of time, from 0 through 3000 milliseconds, between each print attempt
 	while (WaitForEvent(events[2], dis(gen)) == WAIT_TIMEOUT)
 	{
@@ -58,6 +59,7 @@ void letters()
 		++letterIndex;
 		SetEvent(events[0]); //signal main thread to print generated letter
 	}
+	std::cout << "letter(" << std::this_thread::get_id() << ") thread done!" << std::endl;
 }
 
 void numbers()
@@ -67,6 +69,7 @@ void numbers()
 	std::mt19937 gen(rd());
 	std::uniform_int_distribution<int> dis(0, 3000);
 
+	std::cout << "number(" << std::this_thread::get_id() << ") thread start!" << std::endl;
 	//wait a random amount of time, from 0 through 3000 milliseconds, between each print attempt
 	while (WaitForEvent(events[2], dis(gen)) == WAIT_TIMEOUT)
 	{
@@ -78,6 +81,7 @@ void numbers()
 		++numberIndex;
 		SetEvent(events[1]); //signal main thread to print generated number
 	}
+	std::cout << "number(" << std::this_thread::get_id() << ") thread done!" << std::endl;
 }
 
 int main()
